@@ -14,3 +14,6 @@ So to run it you have to run the script ChatUI.py and that's it. Really simple t
 
 # How to change the background
 There is a folder called static, go into there and a backgrounds folder will be in there. That is where you put in your background if you want to change it. Make sure to rename it to "background2"
+
+# Don't want to use the python file to run it?
+I have a exe file that runs the script if you want to use it like that
