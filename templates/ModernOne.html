@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chatroom</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: url("https://media.discordapp.net/attachments/969938540899217448/1075346115773333514/3671a71c8ac7caf97d84b32ff9745d99.jpg?width=1030&height=580") no-repeat center center fixed;
+            background-size: cover;
+            background-position: center;
+        }
+
+        #chat-container {
+            width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f2f2f2;
+            border: 1px solid #ccc;
+        }
+
+        #messages {
+            height: 300px;
+            overflow-y: scroll;
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+
+        #message-input {
+            width: 100%;
+            margin-top: 10px;
+            padding: 5px;
+        }
+
+        #username-input {
+            margin-bottom: 10px;
+            padding: 5px;
+        }
+
+        #join-button {
+            padding: 5px 10px;
+        }
+
+        .system-message {
+            color: #888;
+            font-style: italic;
+        }
+
+        .error-message {
+            color: #ff0000;
+        }
+
+        #status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+
+        .status-indicator-green {
+            background-color: #00ff00;
+        }
+
+        .status-indicator-red {
+            background-color: #ff0000;
+        }
+
+        #leave-button {
+            margin-top: 10px;
+            padding: 5px 10px;
+        }
+
+        /* Agreement Popup Styles */
+        #agreement-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 400px;
+            padding: 20px;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            text-align: center;
+        }
+
+        #agreement-popup h2 {
+            margin-top: 0;
+        }
+
+        #agreement-popup p {
+            margin-bottom: 20px;
+        }
+
+        #agreement-popup button {
+            padding: 5px 10px;
+        }
+
+        /* Connected Client Count */
+        #connected-clients {
+            float: right;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="chat-container">
+        <h1>Chatroom</h1>
+        <div id="messages"></div>
+        <div>
+            <span id="status-indicator" class="status-indicator-red"></span>
+            <span id="status-text">Not Joined</span>
+            <span id="connected-clients">Connected Clients: 0</span>
+        </div>
+        <input type="text" id="username-input" placeholder="Enter your username" /><br />
+        <input type="text" id="message-input" placeholder="Type your message" disabled /><br />
+        <button id="join-button">Join</button>
+        <button id="leave-button" disabled>Leave</button>
+    </div>
+
+    <!-- Agreement Popup -->
+    <div id="agreement-popup" style="display: none;">
+        <h2>Chatroom Agreement</h2>
+        <p>By clicking "I Agree," you agree to abide by the following rules:</p>
+        <ul>
+            <li>Be respectful to others.</li>
+            <li>Do not use this to cheat on test or quizes</li>
+            <li>Do not share personal information.</li>
+            <li>Respect the privacy of others.</li>
+            <li>Please no fighting</li>
+            <li>Don't say anything that will get us all into trouble</li>
+        </ul>
+        <button id="agree-button">I Agree</button>
+        <button id="deny-button">Deny</button>
+            <p>Failure to do so will resort in a kick or ip ban (laptops ip not network)</p>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            var username = null;
+            var joined = false;
+            var connectedClients = 0;
+
+            function displayMessage(message) {
+                var formattedMessage = '<p';
+                if (message.username === 'ChatBot') {
+                    formattedMessage += ' class="system-message"';
+                }
+                formattedMessage += '><strong>' + message.username + ':</strong> ' + message.message + '</p>';
+                $('#messages').append(formattedMessage);
+            }
+
+            function displayErrorMessage(error) {
+                var errorMessage = '<p class="error-message">' + error + '</p>';
+                $('#messages').append(errorMessage);
+            }
+
+            function setStatus(status, text) {
+                var indicator = $('#status-indicator');
+                var statusText = $('#status-text');
+
+                if (status === 'joined') {
+                    indicator.removeClass('status-indicator-red');
+                    indicator.addClass('status-indicator-green');
+                    statusText.text(text);
+                } else {
+                    indicator.removeClass('status-indicator-green');
+                    indicator.addClass('status-indicator-red');
+                    statusText.text(text);
+                }
+            }
+
+            function updateMessageInputState() {
+                if (joined) {
+                    $('#message-input').removeAttr('disabled');
+                    $('#message-input').attr('placeholder', 'Type your message');
+                } else {
+                    $('#message-input').attr('disabled', true);
+                    $('#message-input').attr('placeholder', 'Enter username and press join before joining');
+                }
+            }
+
+            function updateConnectedClients() {
+                $('#connected-clients').text('Connected Clients: ' + connectedClients);
+            }
+
+            // Open the agreement popup when the page loads
+            $('#agreement-popup').show();
+
+            $('#agree-button').click(function() {
+                $('#agreement-popup').hide();
+            });
+
+            $('#deny-button').click(function() {
+                window.location.href = 'https://www.google.com'; // Redirect to another page if denied
+            });
+
+            $('#join-button').click(function() {
+                username = $('#username-input').val();
+                if (username) {
+                    $.ajax({
+                        url: '/join',
+                        method: 'POST',
+                        data: { username: username },
+                        success: function(response) {
+                            if ('error' in response) {
+                                displayErrorMessage(response.error);
+                            } else {
+                                setStatus('joined', 'Joined as ' + username);
+                                joined = true;
+                                $('#username-input').attr('disabled', true);
+                                $('#join-button').attr('disabled', true);
+                                $('#leave-button').removeAttr('disabled');
+                                updateMessageInputState();
+                                displayMessage({ username: 'ChatBot', message: username + ' joined the chat' });
+                            }
+                        }
+                    });
+                } else {
+                    displayErrorMessage('Please enter a valid username.');
+                }
+            });
+
+            $('#leave-button').click(function() {
+                if (joined) {
+                    $.ajax({
+                        url: '/leave',
+                        method: 'POST',
+                        data: { username: username },
+                        success: function(response) {
+                            setStatus('left', 'Not Joined');
+                            joined = false;
+                            $('#username-input').removeAttr('disabled');
+                            $('#join-button').removeAttr('disabled');
+                            $('#leave-button').attr('disabled', true);
+                            $('#messages').empty();
+                            updateMessageInputState();
+                            displayMessage({ username: 'ChatBot', message: username + ' left the chat' });
+                        }
+                    });
+                }
+            });
+
+            $('#message-input').keypress(function(event) {
+                if (event.which === 13) {
+                    if (!username) {
+                        displayErrorMessage('Please choose a username to send messages.');
+                        return;
+                    }
+
+                    var message = $(this).val();
+                    if (message) {
+                        $.ajax({
+                            url: '/send',
+                            method: 'POST',
+                            data: { username: username, message: message },
+                            success: function(response) {
+                                if ('error' in response) {
+                                    displayErrorMessage(response.error);
+                                } else {
+                                    displayMessage(response);
+                                    $('#message-input').val('');
+                                }
+                            }
+                        });
+                    }
+                }
+            });
+
+            setInterval(function() {
+                if (joined) {
+                    $.ajax({
+                        url: '/chat',
+                        success: function(response) {
+                            $('#messages').empty();
+                            $.each(response, function(index, message) {
+                                displayMessage(message);
+                            });
+                        }
+                    });
+                }
+            }, 1000);
+
+            setInterval(function() {
+                $.ajax({
+                    url: '/clients',
+                    success: function(response) {
+                        connectedClients = response.count;
+                        updateConnectedClients();
+                    }
+                });
+            }, 5000);
+        });
+    </script>
+</body>
+</html>
