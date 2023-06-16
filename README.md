@@ -10,7 +10,7 @@ pip install Flask
 ```
 
 # How to run
-So to run it you have to run the script ChatUI.py (if you are using the exe it's same name)
+So to run it you have to run the script ChatUI.py (if you are using the exe it's same name ChatUI.exe)
 Then everyone has to type this in their browser search bar
 ```plaintext
 127.0.0.1:5000
